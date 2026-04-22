@@ -1,0 +1,74 @@
+name: Build Desktop App
+
+# 触发条件：
+#   - push 到 main / master 分支 → 在 Mac + Windows 上各自构建，产物以 artifact 形式保留
+#   - 打 v* 标签 → 同上（未来接 release 可扩展）
+#   - workflow_dispatch → 允许在 Actions 页面手动触发
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # 一个平台挂了不要连带取消另一个平台
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+            build_script: build:mac
+            artifact_name: wechat-auto-mac
+            artifact_path: |
+              dist/*.dmg
+              dist/*.zip
+              dist/*.blockmap
+              dist/latest-mac.yml
+          - os: windows-latest
+            platform: win
+            build_script: build:win
+            artifact_name: wechat-auto-windows
+            artifact_path: |
+              dist/*.exe
+              dist/*.blockmap
+              dist/latest.yml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          # nut-js 拉取 libuiohook 预编译包，走 GitHub 的镜像即可；若偶发超时，这里留个切换口
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 0
+
+      - name: Build (${{ matrix.platform }})
+        run: npm run ${{ matrix.build_script }}
+        env:
+          # CI 没有 Apple 签名证书 —— 关闭自动发现，避免 electron-builder 尝试调用 codesign
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # electron-builder 默认不发布；这里再显式关一次避免 publish:generic 占用网络
+          ELECTRON_BUILDER_PUBLISH: never
+          # GitHub 提供的 token，用于 electron-builder 可能的 release 上传（此处未开启，仅备用）
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: warn
+          retention-days: 30
