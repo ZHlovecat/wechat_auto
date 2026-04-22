@@ -4,11 +4,17 @@ directories:
   buildResources: build
 files:
   - '!**/.vscode/*'
+  - '!**/.claude/**'
+  - '!**/.cursor/**'
+  - '!**/.idea/**'
+  - '!**/.github/**'
   - '!src/*'
+  - '!scripts/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,.editorconfig,dev-app-update.yml,CHANGELOG.md,README.md,系统架构方案.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.node.tsbuildinfo}'
+  - '!**/*.map'
 extraResources:
   - from: scripts/
     to: scripts/
